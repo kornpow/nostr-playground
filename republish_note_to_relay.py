@@ -16,6 +16,19 @@ def format_timestamp(timestamp):
     """Convert unix timestamp to readable format."""
     return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
 
+def load_relays_from_file(filename: str):
+    """Load relay URLs from a text file."""
+    try:
+        with open(filename, 'r') as f:
+            relays = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+        return relays
+    except FileNotFoundError:
+        print(f"❌ Relay file not found: {filename}")
+        return []
+    except Exception as e:
+        print(f"❌ Error reading relay file {filename}: {e}")
+        return []
+
 async def fetch_event_from_relays(event_id: str, relay_urls: list, timeout: int = 10):
     """
     Fetch an event from multiple relays and return the complete Event object.
@@ -208,6 +221,8 @@ async def main():
                        default=['wss://relay.damus.io', 'wss://nos.lol', 'wss://relay.snort.social'],
                        help='Relays to fetch event from (default: damus.io, nos.lol, snort.social)')
     parser.add_argument('--target-relays', nargs='+', help='Specific relays to publish to (overrides JSON)')
+    parser.add_argument('--all-relays', action='store_true', help='Publish to all relays in relays.txt file')
+    parser.add_argument('--relay-file', default='relays.txt', help='File containing relay list (default: relays.txt)')
     
     args = parser.parse_args()
     
@@ -235,7 +250,14 @@ async def main():
         return
     
     # Determine target relays
-    if args.target_relays:
+    if args.all_relays:
+        # Load all relays from file
+        target_relays = load_relays_from_file(args.relay_file)
+        if not target_relays:
+            print("❌ No relays loaded from file")
+            return
+        print(f"Loaded {len(target_relays)} relays from {args.relay_file}")
+    elif args.target_relays:
         target_relays = args.target_relays
     else:
         # Use default relays for testing
