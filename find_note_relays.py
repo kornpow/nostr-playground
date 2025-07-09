@@ -136,6 +136,7 @@ async def main():
     parser.add_argument('--timeout', type=int, default=10, help='Timeout in seconds for each relay (default: 10)')
     parser.add_argument('--single-relay', help='Search only on a single relay (overrides --relays)')
     parser.add_argument('--json', action='store_true', help='Output results as JSON')
+    parser.add_argument('--output', help='Output file path for JSON results (requires --json)')
     
     args = parser.parse_args()
     
@@ -203,7 +204,17 @@ async def main():
                 'kind': str(event.kind()),
                 'content': event.content()
             }
-        print(_json.dumps(output, indent=2))
+        
+        json_output = _json.dumps(output, indent=2)
+        
+        if args.output:
+            # Write to file
+            with open(args.output, 'w') as f:
+                f.write(json_output)
+            print(f"JSON results saved to: {args.output}")
+        else:
+            # Print to stdout
+            print(json_output)
         return
     
     print("\n" + "="*80)
