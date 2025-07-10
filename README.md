@@ -83,6 +83,37 @@ uv run <script_name>.py [options]
   - Fetch a few events to verify connectivity
   - Basic event display
 
+#### `like_post.py` - Like Posts Using Nostr Protocol
+- **Purpose**: Create kind 7 reaction events to like posts
+- **Usage**: `uv run like_post.py <event_id> --keys keys.txt`
+- **Features**:
+  - Like posts with custom reaction content (default: "+")
+  - Unlike posts by sending empty reactions
+  - Automatic key generation and management
+  - Publish to multiple relays with detailed results
+  - Support for custom reaction emojis and text
+
+#### `convert_nsec.py` - Convert NSEC to Hex Private Key
+- **Purpose**: Convert nsec bech32 format to hex private key
+- **Usage**: `uv run convert_nsec.py --output keys.txt`
+- **Features**:
+  - Interactive input with hidden nsec for security
+  - Decode nsec bech32 strings according to NIP-19
+  - Convert to hex format for use with other scripts
+  - Automatic keys.txt file generation with proper formatting
+  - Display both public and private key information
+  - Support for custom output files
+
+#### `generate_nsec.py` - Generate New NSEC Keys
+- **Purpose**: Generate new nsec bech32 keys for Nostr
+- **Usage**: `uv run generate_nsec.py --output keys.txt`
+- **Features**:
+  - Generate cryptographically secure key pairs
+  - Output in both bech32 (nsec/npub) and hex formats
+  - Automatic keys.txt file generation with proper formatting
+  - Security warnings and best practices
+  - Support for hex-only output mode
+
 ## 🛠️ **Common Use Cases**
 
 ### 1. **Explore a Relay**
@@ -119,4 +150,40 @@ uv run extract_relays_from_notes.py
 
 # Decode a nevent
 uv run decode_nevent.py nevent1abc...
+```
+
+### 5. **Like Posts**
+```bash
+# Like a post with default "+" reaction
+uv run like_post.py 33f97eceb1e962f06bd4faf93a00dcac3cd55e43074549708f4c157d5a8c0fbc
+
+# Like with custom reaction
+uv run like_post.py <event_id> --content "❤️"
+
+# Unlike a post
+uv run like_post.py <event_id> --unlike
+
+# Use custom relays
+uv run like_post.py <event_id> --relays wss://relay1 wss://relay2
+```
+
+### 6. **Generate and Convert NSEC Keys**
+```bash
+# Generate new nsec keys and save to keys.txt
+uv run generate_nsec.py --output keys.txt
+
+# Generate keys and display only (don't save)
+uv run generate_nsec.py --no-save
+
+# Generate keys in hex format only
+uv run generate_nsec.py --hex-only
+
+# Convert existing nsec to hex and save to keys.txt (interactive)
+uv run convert_nsec.py --output keys.txt
+
+# Convert nsec and display only (don't save)
+uv run convert_nsec.py --no-save
+
+# Convert nsec to custom filename
+uv run convert_nsec.py --output my_keys.txt
 ```

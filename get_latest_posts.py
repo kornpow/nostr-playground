@@ -124,8 +124,8 @@ def display_posts(posts, show_full_content=False, show_tags=False):
     
     for i, post in enumerate(posts, 1):
         print(f"[{i}] {post['created_at']}")
-        print(f"Author: {post['author'][:16]}...")
-        print(f"ID: {post['id'][:16]}...")
+        print(f"Author: {post['author']}")
+        print(f"ID: {post['id']}")
         
         if show_full_content:
             print(f"Content:\n{post['content']}")

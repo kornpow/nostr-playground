@@ -1,0 +1,20 @@
+# Sample private key file for Nostr Playground
+# 
+# This file should contain your private key in hex format.
+# The private key should be 64 characters long (32 bytes).
+# 
+# IMPORTANT: Keep this file secure and never share your private key!
+# 
+# Example format (replace with your actual private key):
+# 1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+# 
+# To generate a new key pair, run:
+# uv run like_post.py <any_event_id> --keys keys.txt
+# 
+# This will automatically generate a new key pair and save it to keys.txt
+# 
+# Your public key will be displayed when you first run the script.
+# You can share your public key with others, but keep the private key secret.
+# 
+# Replace this line with your actual private key:
+your_actual_private_key_here_64_characters_long 
