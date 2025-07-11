@@ -1,29 +1,23 @@
 import argparse
 import asyncio
 import os
-from nostr_sdk import Keys, Client, NostrSigner, ZapRequestData, ZapType, PublicKey
+from nostr_sdk import Keys, Client, NostrSigner, ZapRequestData, ZapType, PublicKey, RelayUrl
 
 def load_keys_from_file(key_file: str) -> Keys:
     """Load private key from file or generate new one."""
     if os.path.exists(key_file):
         try:
             with open(key_file, 'r') as f:
-                # Read all lines and filter out comments and empty lines
                 lines = [line.strip() for line in f.readlines()]
-                # Remove comments (lines starting with #) and empty lines
                 private_key_lines = [line for line in lines if line and not line.startswith('#')]
-                
                 if not private_key_lines:
-                    raise ValueError("No private key found in file (only comments/empty lines)")
-                
-                # Use the first non-comment, non-empty line as the private key
+                    raise ValueError("No private key found in file")
                 private_key_hex = private_key_lines[0]
             return Keys.parse(private_key_hex)
         except Exception as e:
             print(f"❌ Error loading keys from {key_file}: {e}")
             return None
     else:
-        # Generate new keys
         keys = Keys.generate()
         try:
             with open(key_file, 'w') as f:
@@ -45,7 +39,7 @@ async def main():
 
     keys = load_keys_from_file(args.keys)
     if not keys:
-      return
+        return
 
     signer = NostrSigner.keys(keys)
     client = Client(signer)
@@ -54,12 +48,22 @@ async def main():
     await client.connect()
 
     recipient_public_key = PublicKey.parse(args.recipient)
+    
+    # The nostr-sdk handles the LNURL workflow automatically.
+    # We just need to provide the zap data and the amount.
+    zap_request_data = ZapRequestData(recipient_public_key)
 
-    zap_request_data = ZapRequestData.new(recipient_public_key).message(args.message)
+    if args.message:
+        zap_request_data.message = args.message
 
-    await client.zap(zap_request_data, args.amount * 1000, ZapType.PUBLIC)
+    event_id = await client.zap(
+        zap_request_data,
+        args.amount * 1000, # convert to millisats
+        ZapType.PUBLIC
+    )
 
-    print(f"Zapped {args.amount} sats to {args.recipient}")
+    print(f"✅ Zapped {args.amount} sats to {args.recipient}")
+    print(f"Zap Event ID: {event_id.to_hex()}")
 
     await client.shutdown()
 
