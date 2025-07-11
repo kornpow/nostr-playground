@@ -55,13 +55,9 @@ async def main():
 
     recipient_public_key = PublicKey.parse(args.recipient)
 
-    zap_request_data = ZapRequestData(
-        public_key=recipient_public_key,
-        millisats=args.amount * 1000, # convert to millisats
-        message=args.message
-    )
+    zap_request_data = ZapRequestData.new(recipient_public_key).message(args.message)
 
-    await client.zap(zap_request_data, ZapType.PUBLIC)
+    await client.zap(zap_request_data, args.amount * 1000, ZapType.PUBLIC)
 
     print(f"Zapped {args.amount} sats to {args.recipient}")
 
