@@ -53,7 +53,7 @@ async def main():
     await client.add_relay("wss://relay.damus.io")
     await client.connect()
 
-    recipient_public_key = PublicKey.from_bech32(args.recipient)
+    recipient_public_key = PublicKey.parse(args.recipient)
 
     zap_request_data = ZapRequestData(
         public_key=recipient_public_key,
