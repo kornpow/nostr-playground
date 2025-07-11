@@ -41,7 +41,7 @@ async def get_lnurl(client: Client, pubkey: PublicKey) -> str:
     """Fetch user'''s metadata and extract the LNURL."""
     print(f"🔎 Fetching metadata for {pubkey.to_bech32()}")
     metadata_filter = Filter().author(pubkey).kind(Kind(0)).limit(1)
-    events = await client.fetch_events([metadata_filter], None)
+    events = await client.fetch_events(metadata_filter, None)
     if not events:
         print("❌ Could not find metadata for the recipient.")
         return None
