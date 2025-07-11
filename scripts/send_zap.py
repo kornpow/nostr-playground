@@ -1,7 +1,7 @@
 import argparse
 import asyncio
 import os
-from nostr_sdk import Keys, Client, NostrSigner, ZapRequestData, ZapType, PublicKey, RelayUrl
+from nostr_sdk import Keys, Client, NostrSigner, ZapRequestData, ZapType, PublicKey
 
 def load_keys_from_file(key_file: str) -> Keys:
     """Load private key from file or generate new one."""
