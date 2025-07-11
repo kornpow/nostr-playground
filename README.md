@@ -4,6 +4,13 @@ A collection of Python scripts for interacting with the Nostr protocol. These to
 
 ## 🚀 Quick Start
 
+## ⚙️ Project Structure
+
+- **`pyproject.toml`**: Defines project dependencies and metadata.
+- **`uv.lock`**: A lockfile that ensures deterministic builds by pinning dependency versions.
+- **`*.py`**: Individual Python scripts for various Nostr tasks.
+
+
 All scripts use `uv` for dependency management. Run any script with:
 
 ```bash
