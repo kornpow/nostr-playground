@@ -15,7 +15,8 @@ from nostr_sdk import (
     EventBuilder,
     Filter,
     Metadata,
-    Kind
+    Kind,
+    Timestamp
 )
 
 def load_keys_from_file(key_file: str) -> Keys:
@@ -37,27 +38,34 @@ def load_keys_from_file(key_file: str) -> Keys:
         return None
 
 
+from datetime import timedelta
+
 async def get_lnurl(client: Client, pubkey: PublicKey) -> str:
     """Fetch user'''s metadata and extract the LNURL."""
     print(f"🔎 Fetching metadata for {pubkey.to_bech32()}")
     metadata_filter = Filter().author(pubkey).kind(Kind(0)).limit(1)
-    events = await client.fetch_events(metadata_filter, None)
-    if not events:
+    events = await client.fetch_events(metadata_filter, timedelta(seconds=10))
+
+    events_list = events.to_vec()
+    if not events_list:
         print("❌ Could not find metadata for the recipient.")
         return None
 
-    metadata = Metadata.from_json(events[0].content())
-    if metadata.lud16:
-        ln_addr = metadata.lud16
+    metadata = Metadata.from_json(events_list[0].content())
+    lud16 = metadata.get_lud16()
+    lud06 = metadata.get_lud06()
+
+    if lud16:
+        ln_addr = lud16
         print(f"✅ Found Lightning Address: {ln_addr}")
         parts = ln_addr.split('@')
         return f"https://{parts[1]}/.well-known/lnurlp/{parts[0]}"
-    elif metadata.lud06:
+    elif lud06:
         print("✅ Found LNURL (lud06).")
         # Note: Add bech32 decoding for lud06 if needed. For now, we focus on lud16.
         return None
     else:
-        print("❌ Recipient does not have a Lightning Address (lud16) set up.")
+        print("❌ Recipient does not have a Lightning Address (lud16) or LNURL (lud06) set up.")
         return None
 
 
