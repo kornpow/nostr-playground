@@ -16,19 +16,36 @@ from nostr_sdk import (
 # and correct introspection of the nostr-sdk library.
 
 def load_keys_from_file(key_file: str) -> Keys:
-    """Load private key from file. If not found, it will not create one."""
-    if not os.path.exists(key_file):
-        print(f"❌ Key file not found at {key_file}. A key is required to sign the zap request.")
-        return None
-    try:
-        with open(key_file, 'r') as f:
-            private_key_hex = f.readline().strip()
-            if not private_key_hex or private_key_hex.startswith('#'):
-                 raise ValueError("No valid private key found in file.")
+    """Load private key from file or generate new one."""
+    if os.path.exists(key_file):
+        try:
+            with open(key_file, 'r') as f:
+                # Read all lines and filter out comments and empty lines
+                lines = [line.strip() for line in f.readlines()]
+                # Remove comments (lines starting with #) and empty lines
+                private_key_lines = [line for line in lines if line and not line.startswith('#')]
+                
+                if not private_key_lines:
+                    raise ValueError("No private key found in file (only comments/empty lines)")
+                
+                # Use the first non-comment, non-empty line as the private key
+                private_key_hex = private_key_lines[0]
             return Keys.parse(private_key_hex)
-    except Exception as e:
-        print(f"❌ Error loading keys from {key_file}: {e}")
-        return None
+        except Exception as e:
+            print(f"❌ Error loading keys from {key_file}: {e}")
+            return None
+    else:
+        # Generate new keys
+        keys = Keys.generate()
+        try:
+            with open(key_file, 'w') as f:
+                f.write(keys.secret_key().to_hex())
+            print(f"✅ Generated new keys and saved to {key_file}")
+            print(f"Public key: {keys.public_key().to_hex()}")
+            return keys
+        except Exception as e:
+            print(f"❌ Error saving keys to {key_file}: {e}")
+            return None
 
 async def main():
     parser = argparse.ArgumentParser(description="Send a Nostr zap and get a BOLT11 invoice.")
