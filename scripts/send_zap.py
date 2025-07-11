@@ -57,7 +57,7 @@ async def main():
 
     zap_request_data = ZapRequestData(
         public_key=recipient_public_key,
-        amount_millisats=args.amount * 1000, # convert to millisats
+        millisats=args.amount * 1000, # convert to millisats
         message=args.message
     )
 
