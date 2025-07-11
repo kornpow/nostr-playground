@@ -96,8 +96,8 @@ async def main():
         # The amount must be in **millisats**.
         amount_msats = args.amount * 1000
         
-        # The gift_wrap method returns the bolt11 invoice string.
-        bolt11_invoice = await client.gift_wrap(zap_request, amount_msats)
+        # The send_private_msg method returns the bolt11 invoice string.
+        bolt11_invoice = await client.send_private_msg(zap_request, amount_msats)
 
         print("\n" + "="*60)
         print("✅ SUCCESS! Got BOLT11 Invoice!")
