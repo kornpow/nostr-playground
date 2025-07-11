@@ -1,4 +1,3 @@
-
 import argparse
 import asyncio
 import os
@@ -11,9 +10,6 @@ from nostr_sdk import (
     PublicKey,
     EventId
 )
-
-# This script is now built based on a deep understanding of NIP-57
-# and correct introspection of the nostr-sdk library.
 
 def load_keys_from_file(key_file: str) -> Keys:
     """Load private key from file or generate new one."""
@@ -79,10 +75,8 @@ async def main():
     print("🛠️ Preparing zap request data...")
     recipient_pubkey = PublicKey.parse(args.recipient)
     
-    # The ZapRequestData requires the recipient'''s public key.
-    # It does not require relays in its constructor, that was a previous misunderstanding.
     # The relays for the receipt are specified in the zap() call itself.
-    zap_request = ZapRequestData(recipient_pubkey)
+    zap_request = ZapRequestData(recipient_pubkey, [])
     zap_request.message = args.message
     
     # If an event_id is provided, add it to the request.
