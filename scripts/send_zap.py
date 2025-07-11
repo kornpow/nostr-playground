@@ -14,7 +14,8 @@ from nostr_sdk import (
     PublicKey,
     EventBuilder,
     Filter,
-    Metadata
+    Metadata,
+    Kind
 )
 
 def load_keys_from_file(key_file: str) -> Keys:
@@ -39,7 +40,7 @@ def load_keys_from_file(key_file: str) -> Keys:
 async def get_lnurl(client: Client, pubkey: PublicKey) -> str:
     """Fetch user'''s metadata and extract the LNURL."""
     print(f"🔎 Fetching metadata for {pubkey.to_bech32()}")
-    metadata_filter = Filter().author(pubkey).kind(0).limit(1)
+    metadata_filter = Filter().author(pubkey).kind(Kind.METADATA).limit(1)
     events = await client.get_events([metadata_filter], None)
     if not events:
         print("❌ Could not find metadata for the recipient.")
