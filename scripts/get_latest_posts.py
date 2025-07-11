@@ -21,7 +21,7 @@ def truncate_text(text, max_length=200):
         return text
     return text[:max_length] + "..."
 
-async def fetch_latest_posts(relay_url: str, limit: int = 200, timeout: int = 30):
+async def fetch_latest_posts(relay_url: str, kinds: list[int], limit: int = 200, timeout: int = 30):
     """
     Fetch the latest posts from a specific relay.
     
@@ -44,7 +44,8 @@ async def fetch_latest_posts(relay_url: str, limit: int = 200, timeout: int = 30
         
         # Create filter for kind 1 events (text notes)
         # Order by creation time, newest first
-        filter_obj = Filter().kinds([Kind(1)]).limit(limit)
+        kinds_to_fetch = [Kind(k) for k in kinds]
+        filter_obj = Filter().kinds(kinds_to_fetch).limit(limit)
         
         # Fetch events with timeout
         events = await client.fetch_events(filter_obj, timedelta(seconds=timeout))
@@ -158,6 +159,8 @@ async def main():
     parser.add_argument('--save-json', help='Save posts to JSON file')
     parser.add_argument('--quiet', action='store_true', help='Suppress verbose output')
     
+    parser.add_argument('--kinds', nargs='+', type=int, default=[1], help='Event kinds to filter (default: 1 for text notes)')
+    
     args = parser.parse_args()
     
     # Validate relay URL
@@ -170,7 +173,7 @@ async def main():
         print(f"⏱️  Timeout: {args.timeout} seconds")
     
     # Fetch posts
-    posts = await fetch_latest_posts(args.relay, args.limit, args.timeout)
+    posts = await fetch_latest_posts(args.relay, args.kinds, args.limit, args.timeout)
     
     if not posts:
         print("❌ No posts found or connection failed")

@@ -6,17 +6,18 @@ import json
 from urllib.parse import urlencode, quote
 from urllib.request import urlopen
 from nostr_sdk import (
-    Keys, 
-    Client, 
-    NostrSigner, 
-    ZapRequestData, 
-    ZapType, 
+    Keys,
+    Client,
+    NostrSigner,
+    ZapRequestData,
+    ZapType,
     PublicKey,
     EventBuilder,
     Filter,
     Metadata,
     Kind,
-    Timestamp
+    Timestamp,
+    Tag
 )
 
 def load_keys_from_file(key_file: str) -> Keys:
@@ -117,7 +118,14 @@ async def main():
         print("✍️  Creating and signing Zap Request (Kind 9734)...")
         zap_request_data = ZapRequestData(recipient_pubkey, receipt_relays)
         zap_request_data.message = args.message
-        zap_request = EventBuilder.public_zap_request(zap_request_data).sign_with_keys(keys)
+        unsigned_event = EventBuilder.public_zap_request(zap_request_data).build(keys.public_key())
+        unsigned_event.content = args.message
+        signer = await client.signer()
+        zap_request = await signer.sign_event(unsigned_event)
+
+        # Save event to file for debugging
+        with open('zap_request.json', 'w') as f:
+            f.write(zap_request.as_json())
         
         # 4. Make second HTTP request (to callback)
         encoded_event = quote(zap_request.as_json())
@@ -125,6 +133,7 @@ async def main():
         print(f"📞 Calling callback URL... ")
         with urlopen(final_url) as response:
             callback_data = json.loads(response.read())
+        print(f"Zap Request Event: {zap_request.as_json()}")
 
         # 5. Extract and print the invoice!
         bolt11_invoice = callback_data.get("pr")
