@@ -57,25 +57,31 @@ async def fetch_latest_posts(relay_url: str, kinds: list[int], limit: int = 200,
         formatted_events = []
         for event in events_list:
             try:
-                # Parse content as JSON if possible, otherwise treat as plain text
+                # Parse content as JSON if it's not a kind 1 event (text note)
                 content = event.content()
+                event_kind = event.kind().as_u16()
+                if event_kind != 1:
+                    try:
+                        content = json.loads(content)
+                    except (json.JSONDecodeError, TypeError):
+                        # If it fails to parse, treat as plain text
+                        pass
+
+                # Handle tags properly
                 try:
-                    # Try to parse as JSON for better formatting
-                    content_json = json.loads(content)
-                    if isinstance(content_json, dict):
-                        # If it's a JSON object, extract the text field or use the whole thing
-                        if 'text' in content_json:
-                            content_text = content_json['text']
-                        else:
-                            content_text = json.dumps(content_json, indent=2)
-                    else:
-                        content_text = str(content_json)
-                except (json.JSONDecodeError, TypeError):
-                    # If not JSON, use as plain text
-                    content_text = content
-                
-                # Handle tags properly - skip for now to avoid API issues
-                tags = []
+                    tags = []
+                    event_tags = event.tags()
+                    tags_vec = event_tags.to_vec()
+                    for tag in tags_vec:
+                        try:
+                            # Convert tag to list format
+                            tag_as_vec = tag.as_vec()
+                            tags.append(tag_as_vec)
+                        except Exception as e:
+                            # Fallback to string representation
+                            tags.append(str(tag))
+                except Exception as e:
+                    tags = []
                 
                 # Handle signature properly - skip for now to avoid API issues
                 sig = "unknown"
@@ -84,8 +90,9 @@ async def fetch_latest_posts(relay_url: str, kinds: list[int], limit: int = 200,
                     'id': event.id().to_hex(),
                     'author': event.author().to_hex(),
                     'created_at': format_timestamp(event.created_at().as_secs()),
-                    'content': content_text,
-                    'content_preview': truncate_text(content_text, 150),
+                    'kind': event_kind,
+                    'content': content,
+                    'content_preview': truncate_text(str(content), 150),
                     'tags': tags,
                     'sig': sig
                 }
@@ -106,7 +113,7 @@ async def fetch_latest_posts(relay_url: str, kinds: list[int], limit: int = 200,
         except:
             pass
 
-def display_posts(posts, show_full_content=False, show_tags=False):
+def display_posts(posts, args, show_full_content=False, show_tags=False):
     """
     Display posts in a formatted way.
     
@@ -121,18 +128,25 @@ def display_posts(posts, show_full_content=False, show_tags=False):
     
     print(f"\n{'='*80}")
     print(f"LATEST {len(posts)} POSTS")
-    print(f"{'='*80}\n")
+    print(f"\n{'='*80}\n")
     
     for i, post in enumerate(posts, 1):
+        if args.raw:
+            print(json.dumps(post, indent=2))
+            continue
         print(f"[{i}] {post['created_at']}")
         print(f"Author: {post['author']}")
+        print(f"Kind: {post['kind']}")
         print(f"ID: {post['id']}")
-        
-        if show_full_content:
-            print(f"Content:\n{post['content']}")
+
+        if isinstance(post['content'], dict):
+            # If content is a dictionary, pretty-print it
+            print(json.dumps(post['content'], indent=2, sort_keys=True))
         else:
-            print(f"Content: {post['content_preview']}")
-        
+            # Otherwise, print the text content or its preview
+            content_to_display = post['content'] if show_full_content else post['content_preview']
+            print(f"Content: {content_to_display}")
+
         if show_tags and post['tags']:
             print(f"Tags: {post['tags']}")
         
@@ -161,6 +175,8 @@ async def main():
     
     parser.add_argument('--kinds', nargs='+', type=int, default=[1], help='Event kinds to filter (default: 1 for text notes)')
     
+    parser.add_argument('--raw', action='store_true', help='Print raw event JSON')
+
     args = parser.parse_args()
     
     # Validate relay URL
@@ -180,7 +196,7 @@ async def main():
         return
     
     # Display posts
-    display_posts(posts, args.full_content, args.show_tags)
+    display_posts(posts, args, args.full_content, args.show_tags)
     
     # Save to JSON if requested
     if args.save_json:
