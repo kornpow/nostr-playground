@@ -117,10 +117,11 @@ async def get_lnurl(client: Client, pubkey: PublicKey) -> str:
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="Manually perform a NIP-57 zap to get a BOLT11 invoice.")
+    parser = argparse.ArgumentParser(description="Manually perform a NIP-57 zap to get a BOLT11 invoice. Can zap a user directly or zap a specific note.")
     parser.add_argument("recipient", help="The npub of the recipient to zap.")
     parser.add_argument("amount", help="The amount to zap in sats.", type=int)
     parser.add_argument("-m", "--message", help="An optional message to include with the zap.", default="")
+    parser.add_argument("-n", "--note", help="The note ID (event ID in hex) to zap. If provided, zaps the note instead of just the user. This adds an 'e' tag to the zap request.", default=None)
     parser.add_argument("--keys", default="keys.txt", help="Path to the file containing your private key.")
     args = parser.parse_args()
 
@@ -166,22 +167,31 @@ async def main():
         if args.message:
             print(f"📝 Including message: '{args.message}'")
             
+        if args.note:
+            print(f"⚡ Zapping note: {args.note}")
+        else:
+            print(f"⚡ Zapping user: {recipient_pubkey.to_bech32()}")
+            
         import pprint
         zap_request_data = ZapRequestData(recipient_pubkey, receipt_relays)
         zap_request_data.message = args.message
         unsigned_event = EventBuilder.public_zap_request(zap_request_data).build(keys.public_key())
-        # import code; code.interact(local=dict(globals(), **locals()))
-        dir(unsigned_event)
-        # unsigned_event.content = args.message
+        
         signer = await client.signer()
-        # zap_request = await signer.sign_event(unsigned_event)
         print("DEBUGGING!!!!\n\n\n")
         pprint.pprint(unsigned_event.as_json())
         workaround = unsigned_event.as_json()
         wrk = json.loads(workaround)
         wrk['content'] = args.message
         
-        # Recalculate the event ID after updating content
+        # If zapping a note, add the 'e' tag
+        if args.note:
+            # Add the 'e' tag for the note being zapped
+            note_tag = ["e", args.note]
+            wrk['tags'].append(note_tag)
+            print(f"📌 Added 'e' tag for note: {args.note}")
+        
+        # Recalculate the event ID after updating content and tags
         new_event_id = calculate_event_id(wrk)
         wrk['id'] = new_event_id
         print(f"🆔 Recalculated event ID: {new_event_id}")
