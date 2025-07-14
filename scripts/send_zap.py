@@ -110,6 +110,9 @@ Examples:
 
   # Traditional zapping - specific note:
   python send_zap.py npub1abc123... 1000 -n note1def456... -m "Love this note!"
+
+  # Debug mode - saves zap request JSON files for inspection:
+  python send_zap.py --nevent nevent1abc123... 1000 --debug
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -143,6 +146,11 @@ Examples:
         "--keys",
         default="keys.txt",
         help="Path to the file containing your private key.",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug mode - saves zap request JSON files for inspection.",
     )
     args = parser.parse_args()
 
@@ -244,11 +252,13 @@ Examples:
         signer = await client.signer()
         zap_request = await signer.sign_event(unsigned_zap_request)
 
-        # Save event to file for debugging
-        with open("zap-unsigned.json", "w") as f:
-            f.write(unsigned_zap_request.as_json())
-        with open("zap.json", "w") as f:
-            f.write(zap_request.as_json())
+        # Save event to file for debugging (only if debug flag is set)
+        if args.debug:
+            with open("zap-unsigned.json", "w") as f:
+                f.write(unsigned_zap_request.as_json())
+            with open("zap.json", "w") as f:
+                f.write(zap_request.as_json())
+            print("🐛 Debug mode: Saved zap request JSON files")
 
         # Show zap request details
         zap_json = json.loads(zap_request.as_json())
