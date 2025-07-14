@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import asyncio
 from datetime import timedelta
+
 from nostr_sdk import Client, Filter, Kind, KindStandard
+
 
 async def main():
     client = Client()
@@ -21,5 +23,6 @@ async def main():
         print("-" * 40)
     await client.disconnect()
 
+
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

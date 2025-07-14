@@ -1,31 +1,25 @@
-
 import argparse
 import asyncio
-import os
+import hashlib
 import json
 import traceback
-import hashlib
-from urllib.parse import urlencode, quote
-from urllib.request import urlopen, Request
+from datetime import timedelta
+from urllib.parse import quote
+from urllib.request import Request, urlopen
+
 from nostr_sdk import (
-    Keys,
     Client,
-    NostrSigner,
-    ZapRequestData,
-    ZapType,
-    PublicKey,
     EventBuilder,
     Filter,
-    Metadata,
     Kind,
-    Timestamp,
-    Tag,
-    UnsignedEvent
+    Metadata,
+    NostrSigner,
+    PublicKey,
+    UnsignedEvent,
+    ZapRequestData,
 )
 from utils import load_keys_from_file
 
-
-from datetime import timedelta
 
 def calculate_event_id(event_data: dict) -> str:
     """
@@ -39,24 +33,25 @@ def calculate_event_id(event_data: dict) -> str:
         event_data["created_at"],
         event_data["kind"],
         event_data["tags"],
-        event_data["content"]
+        event_data["content"],
     ]
-    
+
     # Serialize to JSON string
-    canonical_json = json.dumps(canonical, separators=(',', ':'), ensure_ascii=False)
-    
+    canonical_json = json.dumps(canonical, separators=(",", ":"), ensure_ascii=False)
+
     # Calculate SHA-256 hash
-    event_id_bytes = hashlib.sha256(canonical_json.encode('utf-8')).digest()
-    
+    event_id_bytes = hashlib.sha256(canonical_json.encode("utf-8")).digest()
+
     # Convert to lowercase hex string
     event_id = event_id_bytes.hex()
-    
+
     return event_id
+
 
 def get_browser_headers():
     """Return headers that make requests look like they come from a Mozilla browser."""
     return {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0',
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0",
         # 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         # 'Accept-Language': 'en-US,en;q=0.5',
         # 'Accept-Encoding': 'gzip, deflate',
@@ -69,6 +64,7 @@ def get_browser_headers():
         # 'Sec-Fetch-User': '?1',
         # 'Cache-Control': 'max-age=0'
     }
+
 
 async def get_lnurl(client: Client, pubkey: PublicKey) -> str:
     """Fetch user'''s metadata and extract the LNURL."""
@@ -88,7 +84,7 @@ async def get_lnurl(client: Client, pubkey: PublicKey) -> str:
     if lud16:
         ln_addr = lud16
         print(f"✅ Found Lightning Address: {ln_addr}")
-        parts = ln_addr.split('@')
+        parts = ln_addr.split("@")
         return f"https://{parts[1]}/.well-known/lnurlp/{parts[0]}"
     elif lud06:
         print("✅ Found LNURL (lud06).")
@@ -100,12 +96,28 @@ async def get_lnurl(client: Client, pubkey: PublicKey) -> str:
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="Manually perform a NIP-57 zap to get a BOLT11 invoice. Can zap a user directly or zap a specific note.")
+    parser = argparse.ArgumentParser(
+        description="Manually perform a NIP-57 zap to get a BOLT11 invoice. Can zap a user directly or zap a specific note."
+    )
     parser.add_argument("recipient", help="The npub of the recipient to zap.")
     parser.add_argument("amount", help="The amount to zap in sats.", type=int)
-    parser.add_argument("-m", "--message", help="An optional message to include with the zap.", default="")
-    parser.add_argument("-n", "--note", help="The note ID (event ID in hex) to zap. If provided, zaps the note instead of just the user. This adds an 'e' tag to the zap request.", default=None)
-    parser.add_argument("--keys", default="keys.txt", help="Path to the file containing your private key.")
+    parser.add_argument(
+        "-m",
+        "--message",
+        help="An optional message to include with the zap.",
+        default="",
+    )
+    parser.add_argument(
+        "-n",
+        "--note",
+        help="The note ID (event ID in hex) to zap. If provided, zaps the note instead of just the user. This adds an 'e' tag to the zap request.",
+        default=None,
+    )
+    parser.add_argument(
+        "--keys",
+        default="keys.txt",
+        help="Path to the file containing your private key.",
+    )
     args = parser.parse_args()
 
     print("🔑 Loading keys...")
@@ -117,7 +129,11 @@ async def main():
     signer = NostrSigner.keys(keys)
     client = Client(signer=signer)
     # Define relays for the zap receipt
-    receipt_relays = ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.getalby.com/v1"]
+    receipt_relays = [
+        "wss://relay.damus.io",
+        "wss://nos.lol",
+        "wss://relay.getalby.com/v1",
+    ]
     for r in receipt_relays:
         await client.add_relay(r)
     await client.connect()
@@ -137,11 +153,11 @@ async def main():
         request = Request(lnurl_endpoint, headers=get_browser_headers())
         with urlopen(request) as response:
             lnurl_data = json.loads(response.read())
-        
+
         if not lnurl_data.get("allowsNostr"):
             print("❌ LNURL server does not support Nostr zaps.")
             return
-        
+
         callback_url = lnurl_data["callback"]
         print(f"✅ Got callback URL: {callback_url}")
 
@@ -149,34 +165,35 @@ async def main():
         print("✍️  Creating and signing Zap Request (Kind 9734)...")
         if args.message:
             print(f"📝 Including message: '{args.message}'")
-            
+
         if args.note:
             print(f"⚡ Zapping note: {args.note}")
         else:
             print(f"⚡ Zapping user: {recipient_pubkey.to_bech32()}")
-            
+
         import pprint
+
         zap_request_data = ZapRequestData(recipient_pubkey, receipt_relays)
         zap_request_data.message = args.message
         unsigned_event = EventBuilder.public_zap_request(zap_request_data).build(keys.public_key())
-        
+
         signer = await client.signer()
         print("DEBUGGING!!!!\n\n\n")
         pprint.pprint(unsigned_event.as_json())
         workaround = unsigned_event.as_json()
         wrk = json.loads(workaround)
-        wrk['content'] = args.message
-        
+        wrk["content"] = args.message
+
         # If zapping a note, add the 'e' tag
         if args.note:
             # Add the 'e' tag for the note being zapped
             note_tag = ["e", args.note]
-            wrk['tags'].append(note_tag)
+            wrk["tags"].append(note_tag)
             print(f"📌 Added 'e' tag for note: {args.note}")
-        
+
         # Recalculate the event ID after updating content and tags
         new_event_id = calculate_event_id(wrk)
-        wrk['id'] = new_event_id
+        wrk["id"] = new_event_id
         print(f"🆔 Recalculated event ID: {new_event_id}")
 
         unsigned_event = UnsignedEvent.from_json(json.dumps(wrk))
@@ -185,15 +202,15 @@ async def main():
         pprint.pprint(zap_request.as_json())
         print("DEBUGGING!!!!\nEND\n\n")
         # Save event to file for debugging
-        with open('zap_request-unsigned.json', 'w') as f:
+        with open("zap_request-unsigned.json", "w") as f:
             f.write(unsigned_event.as_json())
-        with open('zap_request.json', 'w') as f:
+        with open("zap_request.json", "w") as f:
             f.write(zap_request.as_json())
-        
+
         # 4. Make second HTTP request (to callback)
         encoded_event = quote(zap_request.as_json())
         final_url = f"{callback_url}?amount={amount_msats}&nostr={encoded_event}"
-        print(f"📞 Calling callback URL... ")
+        print("📞 Calling callback URL... ")
         request = Request(final_url, headers=get_browser_headers())
         with urlopen(request) as response:
             callback_data = json.loads(response.read())
@@ -202,12 +219,14 @@ async def main():
         # 5. Extract and print the invoice!
         bolt11_invoice = callback_data.get("pr")
         if not bolt11_invoice:
-            print(f"❌ Callback response did not contain a BOLT11 invoice. Response: {callback_data}")
+            print(
+                f"❌ Callback response did not contain a BOLT11 invoice. Response: {callback_data}"
+            )
             return
-            
-        print("\n" + "="*60)
+
+        print("\n" + "=" * 60)
         print("✅ SUCCESS! Got BOLT11 Invoice!")
-        print("="*60)
+        print("=" * 60)
         print(f"Invoice: {bolt11_invoice}")
         print("\nWith this invoice, you can now proceed to pay it.")
 
@@ -218,6 +237,7 @@ async def main():
     finally:
         print("\n🔌 Shutting down client...")
         await client.shutdown()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

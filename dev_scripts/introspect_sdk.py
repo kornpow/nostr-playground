@@ -1,6 +1,17 @@
 from nostr_sdk import (
-    Keys, Client, Filter, EventBuilder, NostrSigner, 
-    Event, EventId, PublicKey, Tag, ZapRequestData, ZapType, Metadata, Timestamp
+    Client,
+    Event,
+    EventBuilder,
+    EventId,
+    Filter,
+    Keys,
+    Metadata,
+    NostrSigner,
+    PublicKey,
+    Tag,
+    Timestamp,
+    ZapRequestData,
+    ZapType,
 )
 
 classes_to_introspect = {
@@ -16,7 +27,7 @@ classes_to_introspect = {
     "ZapRequestData": ZapRequestData,
     "ZapType": ZapType,
     "Metadata": Metadata,
-    "Timestamp": Timestamp
+    "Timestamp": Timestamp,
 }
 
 for name, cls in classes_to_introspect.items():

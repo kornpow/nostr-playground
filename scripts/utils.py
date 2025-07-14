@@ -1,21 +1,22 @@
-from datetime import datetime
 import os
-from nostr_sdk import Keys
+from datetime import datetime
+
 import bech32
+from nostr_sdk import Keys
 
 
 def format_timestamp(timestamp):
     """Convert unix timestamp to readable format."""
-    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def load_keys_from_file(key_file: str) -> Keys:
     """Load private key from file or generate new one."""
     if os.path.exists(key_file):
         try:
-            with open(key_file, 'r') as f:
+            with open(key_file) as f:
                 lines = [line.strip() for line in f.readlines()]
-                private_key_lines = [line for line in lines if line and not line.startswith('#')]
+                private_key_lines = [line for line in lines if line and not line.startswith("#")]
                 if not private_key_lines:
                     raise ValueError("No private key found in file (only comments/empty lines)")
                 private_key_hex = private_key_lines[0]
@@ -26,7 +27,7 @@ def load_keys_from_file(key_file: str) -> Keys:
     else:
         keys = Keys.generate()
         try:
-            with open(key_file, 'w') as f:
+            with open(key_file, "w") as f:
                 f.write(keys.secret_key().to_hex())
             print(f"✅ Generated new keys and saved to {key_file}")
             print(f"Public key: {keys.public_key().to_hex()}")
@@ -36,10 +37,10 @@ def load_keys_from_file(key_file: str) -> Keys:
             return None
 
 
-def save_to_keys_file(private_key_hex: str, filename: str = 'keys.txt'):
+def save_to_keys_file(private_key_hex: str, filename: str = "keys.txt"):
     """Save the private key to a keys.txt file with proper formatting."""
     try:
-        with open(filename, 'w') as f:
+        with open(filename, "w") as f:
             f.write("# Sample private key file for Nostr Playground\n")
             f.write("# \n")
             f.write("# This file should contain your private key in hex format.\n")
@@ -56,7 +57,9 @@ def save_to_keys_file(private_key_hex: str, filename: str = 'keys.txt'):
             f.write("# This will automatically generate a new key pair and save it to keys.txt\n")
             f.write("# \n")
             f.write("# Your public key will be displayed when you first run the script.\n")
-            f.write("# You can share your public key with others, but keep the private key secret.\n")
+            f.write(
+                "# You can share your public key with others, but keep the private key secret.\n"
+            )
             f.write("# \n")
             f.write("# Replace this line with your actual private key:\n")
             f.write(f"{private_key_hex}\n")
@@ -76,10 +79,6 @@ def decode_bech32_proper(bech32_string: str):
         data_bytes = bech32.convertbits(data, 5, 8, False)
         if data_bytes is None:
             return None
-        return {
-            'hrp': hrp,
-            'data': data_bytes,
-            'data_length': len(data_bytes)
-        }
-    except Exception as e:
-        return None 
+        return {"hrp": hrp, "data": data_bytes, "data_length": len(data_bytes)}
+    except Exception:
+        return None

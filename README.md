@@ -4,6 +4,41 @@ A collection of Python scripts for interacting with the Nostr protocol. These to
 
 ## 🚀 Quick Start
 
+## 🛠️ Development Setup
+
+This project uses modern Python tooling for development:
+
+### Prerequisites
+- Python 3.13+
+- [uv](https://docs.astral.sh/uv/) for dependency management
+
+### Setup
+```bash
+# Install dependencies
+uv sync --dev
+
+# Install pre-commit hooks
+uv run pre-commit install
+```
+
+### Code Quality Tools
+- **Black**: Code formatting (`uv run black .`)
+- **isort**: Import sorting (configured to work with Black)
+- **Ruff**: Fast linting and additional formatting
+- **Pre-commit**: Automated code quality checks before commits
+
+### Running Quality Checks
+```bash
+# Format code
+uv run black .
+
+# Check and fix with ruff
+uv run ruff check --fix .
+
+# Run all pre-commit hooks
+uv run pre-commit run --all-files
+```
+
 ## ⚙️ Project Structure
 
 - **`pyproject.toml`**: Defines project dependencies and metadata.
@@ -22,7 +57,7 @@ uv run <script_name>.py [options]
 #### `hello.py` - Basic Nostr Connection & Event Monitoring
 - **Purpose**: Basic connection to Nostr relays and real-time event monitoring
 - **Usage**: `uv run hello.py`
-- **Features**: 
+- **Features**:
   - Connects to multiple relays (damus.io, denver.space)
   - Monitors events from the last 24 hours
   - Displays event statistics by kind
