@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 from nostr_sdk import (
     Client,
     EventBuilder,
+    EventId,
     Filter,
     Kind,
     Metadata,
@@ -109,7 +110,7 @@ async def main():
     parser.add_argument(
         "-n",
         "--note",
-        help="The note ID (event ID in hex) to zap. If provided, zaps the note instead of just the user. This adds an 'e' tag to the zap request.",
+        help="The note ID (event ID in hex) to zap. If provided, zaps the note instead of just the user. This adds an 'e' tag to the zap request. Can be provided as hex string or note1... bech32 format.",
         default=None,
     )
     parser.add_argument(
@@ -170,20 +171,26 @@ async def main():
         else:
             print(f"⚡ Zapping user: {recipient_pubkey.to_bech32()}")
 
+        # Create the zap request data
         zap_request_data = ZapRequestData(recipient_pubkey, receipt_relays).message(args.message)
+
+        # If zapping a note, we need to add the event ID to the zap request data
+        if args.note:
+            try:
+                # Parse the note event ID
+                note_event_id = EventId.parse(args.note)
+                zap_request_data = zap_request_data.event_id(note_event_id)
+                print(f"📌 Added 'e' tag for note: {args.note}")
+            except Exception as e:
+                print(f"❌ Error parsing note event ID: {e}")
+                return
+
+        # Build the unsigned zap request event
         unsigned_zap_request = EventBuilder.public_zap_request(zap_request_data).build(
             keys.public_key()
         )
 
         signer = await client.signer()
-
-        # If zapping a note, add the 'e' tag
-        # if args.note:
-        #     # Add the 'e' tag for the note being zapped
-        #     note_tag = ["e", args.note]
-        #     wrk["tags"].append(note_tag)
-        #     print(f"📌 Added 'e' tag for note: {args.note}")
-
         zap_request = await signer.sign_event(unsigned_zap_request)
 
         # Save event to file for debugging
@@ -192,14 +199,38 @@ async def main():
         with open("zap.json", "w") as f:
             f.write(zap_request.as_json())
 
+        # Show zap request details
+        zap_json = json.loads(zap_request.as_json())
+        print("\n📋 Zap Request Details:")
+        print(f"  Kind: {zap_json['kind']}")
+        print(f"  Content: '{zap_json['content']}'")
+        print("  Tags:")
+        for tag in zap_json["tags"]:
+            if tag[0] == "p":
+                print(f"    - p tag (recipient): {tag[1][:16]}...")
+            elif tag[0] == "e":
+                print(f"    - e tag (note): {tag[1]}")
+            elif tag[0] == "relays":
+                print(f"    - relays tag: {len(tag)-1} relays")
+            else:
+                print(f"    - {tag[0]} tag: {tag[1:] if len(tag) > 1 else 'no value'}")
+
+        if args.note:
+            e_tags = [tag for tag in zap_json["tags"] if tag[0] == "e"]
+            if e_tags:
+                print("✅ Successfully created note zap with 'e' tag!")
+            else:
+                print("⚠️  Warning: Expected 'e' tag for note zap but none found!")
+        else:
+            print("✅ Successfully created user zap!")
+
         # 4. Make second HTTP request (to callback)
         encoded_event = quote(zap_request.as_json())
         final_url = f"{callback_url}?amount={amount_msats}&nostr={encoded_event}"
-        print("📞 Calling callback URL... ")
+        print("\n📞 Calling callback URL... ")
         request = Request(final_url, headers=get_browser_headers())
         with urlopen(request) as response:
             callback_data = json.loads(response.read())
-        print(f"Zap Request Event: {zap_request.as_json()}")
 
         # 5. Extract and print the invoice!
         bolt11_invoice = callback_data.get("pr")

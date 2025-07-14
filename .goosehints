@@ -1,0 +1,12 @@
+Run unit tests before committing any changes.
+
+Go through the README.md for information on how to build and test it as needed.
+
+
+Go through NOSTR_SDK_API.md for information about how to use the nostr_sdk
+
+Always us `uv` for python package management.
+
+Assume dependencies are already installed, if in doubt.
+
+Ask permission to create new files.
