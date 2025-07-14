@@ -1,3 +1,5 @@
+import hashlib
+import json
 import os
 from datetime import datetime
 
@@ -82,3 +84,30 @@ def decode_bech32_proper(bech32_string: str):
         return {"hrp": hrp, "data": data_bytes, "data_length": len(data_bytes)}
     except Exception:
         return None
+
+
+def calculate_event_id(event_data: dict) -> str:
+    """
+    Calculate the event ID according to Nostr specification.
+    Canonical form: [0, pubkey, created_at, kind, tags, content]
+    """
+    # Create the canonical array for hashing
+    canonical = [
+        0,
+        event_data["pubkey"],
+        event_data["created_at"],
+        event_data["kind"],
+        event_data["tags"],
+        event_data["content"],
+    ]
+
+    # Serialize to JSON string
+    canonical_json = json.dumps(canonical, separators=(",", ":"), ensure_ascii=False)
+
+    # Calculate SHA-256 hash
+    event_id_bytes = hashlib.sha256(canonical_json.encode("utf-8")).digest()
+
+    # Convert to lowercase hex string
+    event_id = event_id_bytes.hex()
+
+    return event_id
