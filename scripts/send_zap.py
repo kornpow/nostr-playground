@@ -15,7 +15,6 @@ from nostr_sdk import (
     Metadata,
     NostrSigner,
     PublicKey,
-    UnsignedEvent,
     ZapRequestData,
 )
 from utils import load_keys_from_file
@@ -171,40 +170,26 @@ async def main():
         else:
             print(f"⚡ Zapping user: {recipient_pubkey.to_bech32()}")
 
-        import pprint
-
-        zap_request_data = ZapRequestData(recipient_pubkey, receipt_relays)
-        zap_request_data.message = args.message
-        unsigned_event = EventBuilder.public_zap_request(zap_request_data).build(keys.public_key())
+        zap_request_data = ZapRequestData(recipient_pubkey, receipt_relays).message(args.message)
+        unsigned_zap_request = EventBuilder.public_zap_request(zap_request_data).build(
+            keys.public_key()
+        )
 
         signer = await client.signer()
-        print("DEBUGGING!!!!\n\n\n")
-        pprint.pprint(unsigned_event.as_json())
-        workaround = unsigned_event.as_json()
-        wrk = json.loads(workaround)
-        wrk["content"] = args.message
 
         # If zapping a note, add the 'e' tag
-        if args.note:
-            # Add the 'e' tag for the note being zapped
-            note_tag = ["e", args.note]
-            wrk["tags"].append(note_tag)
-            print(f"📌 Added 'e' tag for note: {args.note}")
+        # if args.note:
+        #     # Add the 'e' tag for the note being zapped
+        #     note_tag = ["e", args.note]
+        #     wrk["tags"].append(note_tag)
+        #     print(f"📌 Added 'e' tag for note: {args.note}")
 
-        # Recalculate the event ID after updating content and tags
-        new_event_id = calculate_event_id(wrk)
-        wrk["id"] = new_event_id
-        print(f"🆔 Recalculated event ID: {new_event_id}")
+        zap_request = await signer.sign_event(unsigned_zap_request)
 
-        unsigned_event = UnsignedEvent.from_json(json.dumps(wrk))
-        zap_request = await signer.sign_event(unsigned_event)
-
-        pprint.pprint(zap_request.as_json())
-        print("DEBUGGING!!!!\nEND\n\n")
         # Save event to file for debugging
-        with open("zap_request-unsigned.json", "w") as f:
-            f.write(unsigned_event.as_json())
-        with open("zap_request.json", "w") as f:
+        with open("zap-unsigned.json", "w") as f:
+            f.write(unsigned_zap_request.as_json())
+        with open("zap.json", "w") as f:
             f.write(zap_request.as_json())
 
         # 4. Make second HTTP request (to callback)
