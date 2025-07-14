@@ -23,42 +23,7 @@ from nostr_sdk import (
     TagStandard,
     NostrSigner
 )
-
-def format_timestamp(timestamp):
-    """Convert unix timestamp to readable format."""
-    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-
-def load_keys_from_file(key_file: str) -> Keys:
-    """Load private key from file or generate new one."""
-    if os.path.exists(key_file):
-        try:
-            with open(key_file, 'r') as f:
-                # Read all lines and filter out comments and empty lines
-                lines = [line.strip() for line in f.readlines()]
-                # Remove comments (lines starting with #) and empty lines
-                private_key_lines = [line for line in lines if line and not line.startswith('#')]
-                
-                if not private_key_lines:
-                    raise ValueError("No private key found in file (only comments/empty lines)")
-                
-                # Use the first non-comment, non-empty line as the private key
-                private_key_hex = private_key_lines[0]
-            return Keys.parse(private_key_hex)
-        except Exception as e:
-            print(f"❌ Error loading keys from {key_file}: {e}")
-            return None
-    else:
-        # Generate new keys
-        keys = Keys.generate()
-        try:
-            with open(key_file, 'w') as f:
-                f.write(keys.secret_key().to_hex())
-            print(f"✅ Generated new keys and saved to {key_file}")
-            print(f"Public key: {keys.public_key().to_hex()}")
-            return keys
-        except Exception as e:
-            print(f"❌ Error saving keys to {key_file}: {e}")
-            return None
+from utils import format_timestamp, load_keys_from_file
 
 async def fetch_event_by_id(event_id: str, relay_url: str, timeout: int = 10):
     """

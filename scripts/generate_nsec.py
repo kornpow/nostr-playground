@@ -8,6 +8,7 @@ This script generates new Nostr secret keys in nsec bech32 format.
 import argparse
 import sys
 from nostr_sdk import Keys
+from utils import save_to_keys_file
 
 def generate_nsec():
     """
@@ -44,43 +45,6 @@ def generate_nsec():
             'success': False,
             'error': f'Error generating keys: {str(e)}'
         }
-
-def save_to_keys_file(private_key_hex: str, filename: str = 'keys.txt'):
-    """
-    Save the private key to a keys.txt file with proper formatting.
-    
-    Args:
-        private_key_hex: The private key in hex format
-        filename: The filename to save to
-    """
-    try:
-        with open(filename, 'w') as f:
-            f.write("# Sample private key file for Nostr Playground\n")
-            f.write("# \n")
-            f.write("# This file should contain your private key in hex format.\n")
-            f.write("# The private key should be 64 characters long (32 bytes).\n")
-            f.write("# \n")
-            f.write("# IMPORTANT: Keep this file secure and never share your private key!\n")
-            f.write("# \n")
-            f.write("# Example format (replace with your actual private key):\n")
-            f.write("# 1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\n")
-            f.write("# \n")
-            f.write("# To generate a new key pair, run:\n")
-            f.write("# uv run like_post.py <any_event_id> --keys keys.txt\n")
-            f.write("# \n")
-            f.write("# This will automatically generate a new key pair and save it to keys.txt\n")
-            f.write("# \n")
-            f.write("# Your public key will be displayed when you first run the script.\n")
-            f.write("# You can share your public key with others, but keep the private key secret.\n")
-            f.write("# \n")
-            f.write("# Replace this line with your actual private key:\n")
-            f.write(f"{private_key_hex}\n")
-        
-        print(f"✅ Private key saved to {filename}")
-        return True
-    except Exception as e:
-        print(f"❌ Error saving to {filename}: {e}")
-        return False
 
 def print_generated_info(result):
     """Print the generated key information."""

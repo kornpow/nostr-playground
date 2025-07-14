@@ -10,36 +10,7 @@ import argparse
 import bech32
 import sys
 from nostr_sdk import Keys
-
-def decode_bech32_proper(bech32_string: str):
-    """
-    Decode a bech32 string properly according to NIP-19.
-    
-    Args:
-        bech32_string: The bech32 string to decode
-    
-    Returns:
-        Dict with decoded information or None if failed
-    """
-    try:
-        # Decode the bech32 string
-        hrp, data = bech32.bech32_decode(bech32_string)
-        
-        if hrp is None or data is None:
-            return None
-        
-        # Convert data to bytes
-        data_bytes = bech32.convertbits(data, 5, 8, False)
-        if data_bytes is None:
-            return None
-        
-        return {
-            'hrp': hrp,
-            'data': data_bytes,
-            'data_length': len(data_bytes)
-        }
-    except Exception as e:
-        return None
+from utils import save_to_keys_file, decode_bech32_proper
 
 def decode_nsec(nsec_string: str):
     """
@@ -108,43 +79,6 @@ def decode_nsec(nsec_string: str):
             'success': False,
             'error': f'Unexpected error: {str(e)}'
         }
-
-def save_to_keys_file(private_key_hex: str, filename: str = 'keys.txt'):
-    """
-    Save the private key to a keys.txt file with proper formatting.
-    
-    Args:
-        private_key_hex: The private key in hex format
-        filename: The filename to save to
-    """
-    try:
-        with open(filename, 'w') as f:
-            f.write("# Sample private key file for Nostr Playground\n")
-            f.write("# \n")
-            f.write("# This file should contain your private key in hex format.\n")
-            f.write("# The private key should be 64 characters long (32 bytes).\n")
-            f.write("# \n")
-            f.write("# IMPORTANT: Keep this file secure and never share your private key!\n")
-            f.write("# \n")
-            f.write("# Example format (replace with your actual private key):\n")
-            f.write("# 1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\n")
-            f.write("# \n")
-            f.write("# To generate a new key pair, run:\n")
-            f.write("# uv run like_post.py <any_event_id> --keys keys.txt\n")
-            f.write("# \n")
-            f.write("# This will automatically generate a new key pair and save it to keys.txt\n")
-            f.write("# \n")
-            f.write("# Your public key will be displayed when you first run the script.\n")
-            f.write("# You can share your public key with others, but keep the private key secret.\n")
-            f.write("# \n")
-            f.write("# Replace this line with your actual private key:\n")
-            f.write(f"{private_key_hex}\n")
-        
-        print(f"✅ Private key saved to {filename}")
-        return True
-    except Exception as e:
-        print(f"❌ Error saving to {filename}: {e}")
-        return False
 
 def print_decoded_info(result):
     """Print the decoded nsec information."""

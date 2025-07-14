@@ -10,6 +10,7 @@ import re
 import base64
 import bech32
 from nostr_sdk import EventId, PublicKey, Kind, KindStandard
+from utils import decode_bech32_proper
 
 def decode_tlv(data_bytes):
     """
@@ -60,40 +61,6 @@ def decode_tlv(data_bytes):
                 result['kind'] = kind
     
     return result
-
-def decode_bech32_proper(bech32_string):
-    """
-    Proper bech32 decoder using the bech32 library.
-    """
-    try:
-        if bech32_string.startswith('nevent1'):
-            # Decode the bech32 string
-            hrp, data = bech32.bech32_decode(bech32_string)
-            
-            if hrp != 'nevent' or data is None:
-                return {'error': 'Invalid bech32 format'}
-            
-            # Convert 5-bit data to 8-bit
-            converted = bech32.convertbits(data, 5, 8, False)
-            if converted is None:
-                return {'error': 'Failed to convert bech32 data'}
-            
-            # Convert to bytes
-            data_bytes = bytes(converted)
-            
-            # Decode TLV data
-            tlv_result = decode_tlv(data_bytes)
-            
-            return {
-                'prefix': 'nevent1',
-                'hrp': hrp,
-                'data_length': len(data_bytes),
-                'tlv_data': tlv_result
-            }
-        else:
-            return None
-    except Exception as e:
-        return {'error': str(e)}
 
 def decode_nevent(nevent_string: str):
     """

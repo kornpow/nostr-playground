@@ -8,10 +8,7 @@ This script queries multiple Nostr relays to check if they have a specific note 
 import asyncio
 from datetime import datetime, timedelta
 from nostr_sdk import Client, Filter, EventId
-
-def format_timestamp(timestamp):
-    """Convert unix timestamp to readable format."""
-    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+from utils import format_timestamp
 
 def print_note_details(event):
     """Print note details in a readable format."""

@@ -10,10 +10,7 @@ import argparse
 import json
 from datetime import datetime, timedelta
 from nostr_sdk import Client, Filter, Kind
-
-def format_timestamp(timestamp):
-    """Convert unix timestamp to readable format."""
-    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+from utils import format_timestamp
 
 def truncate_text(text, max_length=200):
     """Truncate text to max_length and add ellipsis if needed."""

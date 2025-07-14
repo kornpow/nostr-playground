@@ -11,10 +11,7 @@ import json
 import argparse
 from datetime import datetime, timedelta
 from nostr_sdk import Client, Filter, EventId, Keys, Event, Kind, KindStandard
-
-def format_timestamp(timestamp):
-    """Convert unix timestamp to readable format."""
-    return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+from utils import format_timestamp
 
 def load_relays_from_file(filename: str):
     """Load relay URLs from a text file."""

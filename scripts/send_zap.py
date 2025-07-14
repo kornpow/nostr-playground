@@ -22,24 +22,7 @@ from nostr_sdk import (
     Tag,
     UnsignedEvent
 )
-
-def load_keys_from_file(key_file: str) -> Keys:
-    """Load private key from file. This is the known-working function."""
-    if os.path.exists(key_file):
-        try:
-            with open(key_file, 'r') as f:
-                lines = [line.strip() for line in f.readlines()]
-                private_key_lines = [line for line in lines if line and not line.startswith('#')]
-                if not private_key_lines:
-                    raise ValueError("No private key found in file (only comments/empty lines)")
-                private_key_hex = private_key_lines[0]
-            return Keys.parse(private_key_hex)
-        except Exception as e:
-            print(f"❌ Error loading keys from {key_file}: {e}")
-            return None
-    else:
-        print(f"❌ Key file not found at {key_file}. A key is required to sign the zap request.")
-        return None
+from utils import load_keys_from_file
 
 
 from datetime import timedelta
