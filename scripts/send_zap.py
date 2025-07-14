@@ -7,6 +7,7 @@ from datetime import timedelta
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+from decode_nevent import get_zap_info
 from nostr_sdk import (
     Client,
     EventBuilder,
@@ -97,9 +98,34 @@ async def get_lnurl(client: Client, pubkey: PublicKey) -> str:
 
 async def main():
     parser = argparse.ArgumentParser(
-        description="Manually perform a NIP-57 zap to get a BOLT11 invoice. Can zap a user directly or zap a specific note."
+        description="""
+Manually perform a NIP-57 zap to get a BOLT11 invoice. Can zap a user directly or zap a specific note using a nevent.
+
+Examples:
+  # Zap a note using nevent (automatic recipient and note detection):
+  python send_zap.py --nevent nevent1abc123... 1000 -m "Great post!"
+
+  # Traditional zapping - user only:
+  python send_zap.py npub1abc123... 1000 -m "Thanks!"
+
+  # Traditional zapping - specific note:
+  python send_zap.py npub1abc123... 1000 -n note1def456... -m "Love this note!"
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("recipient", help="The npub of the recipient to zap.")
+
+    # Create mutually exclusive group for nevent vs traditional args
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        "--nevent",
+        help="A nevent string containing the note to zap and its author. This will automatically extract the recipient and note ID.",
+    )
+    group.add_argument(
+        "recipient",
+        nargs="?",
+        help="The npub of the recipient to zap (when not using --nevent).",
+    )
+
     parser.add_argument("amount", help="The amount to zap in sats.", type=int)
     parser.add_argument(
         "-m",
@@ -110,7 +136,7 @@ async def main():
     parser.add_argument(
         "-n",
         "--note",
-        help="The note ID (event ID in hex) to zap. If provided, zaps the note instead of just the user. This adds an 'e' tag to the zap request. Can be provided as hex string or note1... bech32 format.",
+        help="The note ID (event ID in hex) to zap when using recipient. If provided, zaps the note instead of just the user. This adds an 'e' tag to the zap request. Can be provided as hex string or note1... bech32 format.",
         default=None,
     )
     parser.add_argument(
@@ -119,6 +145,15 @@ async def main():
         help="Path to the file containing your private key.",
     )
     args = parser.parse_args()
+
+    # Validate argument combinations
+    if not args.nevent and not args.recipient:
+        parser.error("You must provide either --nevent or recipient")
+
+    if args.nevent and args.note:
+        parser.error(
+            "Cannot use both --nevent and --note. The nevent already contains the note information."
+        )
 
     print("🔑 Loading keys...")
     keys = load_keys_from_file(args.keys)
@@ -139,8 +174,30 @@ async def main():
     await client.connect()
 
     try:
+        # --- DETERMINE RECIPIENT AND NOTE FROM ARGUMENTS ---
+        if args.nevent:
+            print(f"🔍 Decoding nevent: {args.nevent}")
+            try:
+                recipient_pubkey, note_event_id = get_zap_info(args.nevent)
+                print("✅ Extracted from nevent:")
+                print(f"   Recipient: {recipient_pubkey.to_bech32()}")
+                print(f"   Note ID: {note_event_id.to_hex()}")
+            except Exception as e:
+                print(f"❌ Failed to decode nevent: {e}")
+                return
+        else:
+            # Traditional mode: recipient and optional note
+            recipient_pubkey = PublicKey.parse(args.recipient)
+            note_event_id = None
+            if args.note:
+                try:
+                    note_event_id = EventId.parse(args.note)
+                    print(f"✅ Parsed note ID: {note_event_id.to_hex()}")
+                except Exception as e:
+                    print(f"❌ Error parsing note event ID: {e}")
+                    return
+
         # --- NIP-57 MANUAL WORKFLOW ---
-        recipient_pubkey = PublicKey.parse(args.recipient)
         amount_msats = args.amount * 1000
 
         # 1. Get LNURL from profile
@@ -166,8 +223,8 @@ async def main():
         if args.message:
             print(f"📝 Including message: '{args.message}'")
 
-        if args.note:
-            print(f"⚡ Zapping note: {args.note}")
+        if note_event_id:
+            print(f"⚡ Zapping note: {note_event_id.to_hex()}")
         else:
             print(f"⚡ Zapping user: {recipient_pubkey.to_bech32()}")
 
@@ -175,15 +232,9 @@ async def main():
         zap_request_data = ZapRequestData(recipient_pubkey, receipt_relays).message(args.message)
 
         # If zapping a note, we need to add the event ID to the zap request data
-        if args.note:
-            try:
-                # Parse the note event ID
-                note_event_id = EventId.parse(args.note)
-                zap_request_data = zap_request_data.event_id(note_event_id)
-                print(f"📌 Added 'e' tag for note: {args.note}")
-            except Exception as e:
-                print(f"❌ Error parsing note event ID: {e}")
-                return
+        if note_event_id:
+            zap_request_data = zap_request_data.event_id(note_event_id)
+            print(f"📌 Added 'e' tag for note: {note_event_id.to_hex()}")
 
         # Build the unsigned zap request event
         unsigned_zap_request = EventBuilder.public_zap_request(zap_request_data).build(
@@ -215,7 +266,7 @@ async def main():
             else:
                 print(f"    - {tag[0]} tag: {tag[1:] if len(tag) > 1 else 'no value'}")
 
-        if args.note:
+        if note_event_id:
             e_tags = [tag for tag in zap_json["tags"] if tag[0] == "e"]
             if e_tags:
                 print("✅ Successfully created note zap with 'e' tag!")

@@ -9,7 +9,7 @@ import json
 import re
 import sys
 
-from nostr_sdk import EventId
+from nostr_sdk import EventId, PublicKey
 from utils import decode_bech32_proper
 
 
@@ -173,6 +173,41 @@ def get_note_id(nevent_string: str) -> str:
     if result["success"] and "note_id" in result:
         return result["note_id"]
     return None
+
+
+def get_zap_info(nevent_string: str) -> tuple[PublicKey, EventId]:
+    """
+    Extract author and event ID from a nevent string for zapping.
+
+    Args:
+        nevent_string: The nevent string to decode
+
+    Returns:
+        Tuple of (author_public_key, event_id)
+
+    Raises:
+        Exception if decoding fails or author is not available
+    """
+    result = decode_nevent(nevent_string)
+
+    if not result["success"]:
+        raise Exception(f"Failed to decode nevent: {result['error']}")
+
+    # Get the event ID
+    event_id = EventId.parse(result["event_id_hex"])
+
+    # Try to get the author from TLV data
+    author = None
+    if "tlv_data" in result and "author" in result["tlv_data"]:
+        author_hex = result["tlv_data"]["author"]
+        author = PublicKey.parse(author_hex)
+
+    if author is None:
+        raise Exception(
+            "nevent does not contain author information - you'll need to provide the recipient manually"
+        )
+
+    return author, event_id
 
 
 def print_decoded_event(result):
