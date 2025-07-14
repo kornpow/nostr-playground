@@ -51,7 +51,7 @@ def decode_nsec(nsec_string: str):
             }
 
         # Convert to hex
-        private_key_hex = bech32_info["data"].hex()
+        private_key_hex = bytes(bech32_info["data"]).hex()
 
         # Validate the private key using nostr-sdk
         try:
